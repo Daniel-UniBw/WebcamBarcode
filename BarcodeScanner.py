@@ -14,18 +14,29 @@ os.makedirs("Images", exist_ok=True)
 # Initialize webcam
 cap = cv2.VideoCapture(0)
 
-def capture_image():
+current_barcode = None
+last_barcode_time = None
+
+def capture_image(barcode=None):
+    global current_barcode, last_barcode_time
+
     # Capture current frame
     ret, frame = cap.read()
     if ret:
-        # Save frame as an image
-        filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".png"
+        if barcode:
+            filename = f"{barcode}.png"
+        else:
+            filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".png"
         filepath = os.path.join("Images", filename)
         cv2.imwrite(filepath, frame)
         messagebox.showinfo("Image Captured", f"Image saved as {filename}")
 
+    current_barcode = None
+    last_barcode_time = None
 
 def update_frame():
+    global current_barcode, last_barcode_time
+
     ret, frame = cap.read()
     if ret:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -34,25 +45,26 @@ def update_frame():
         label.config(image=frame2Display)
         label.image = frame2Display
 
-        # Read and display barcode if present
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
-
         decoded = decode(thresh)
-        if decoded:
-            content = decoded[0].data.decode("utf-8")
+
+        if decoded and current_barcode != decoded[0].data.decode("utf-8"):
+            current_barcode = decoded[0].data.decode("utf-8")
+            last_barcode_time = datetime.now()
             editbox.delete(0, tk.END)
-            editbox.insert(0, content)
-        else:
+            editbox.insert(0, current_barcode)
+        elif current_barcode and (datetime.now() - last_barcode_time).seconds >= 10:
+            current_barcode = None
             editbox.delete(0, tk.END)
             editbox.insert(0, "No barcode found")
-
-
 
     root.after(10, update_frame)
 
 def on_keypress(event):
-    if event.keysym == 'space':
+    if event.keysym == 'space' and current_barcode:
+        capture_image(current_barcode)
+    elif event.keysym == 'space':
         capture_image()
 
 root = tk.Tk()
