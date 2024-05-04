@@ -40,17 +40,15 @@ def update_frame():
     ret, frame = cap.read()
     if ret:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame2Display = Image.fromarray(frame)
-        frame2Display = ImageTk.PhotoImage(frame2Display)
-        label.config(image=frame2Display)
-        label.image = frame2Display
-
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
         decoded = decode(thresh)
 
-        if decoded and current_barcode != decoded[0].data.decode("utf-8"):
-            current_barcode = decoded[0].data.decode("utf-8")
+        if decoded:
+            barcode = decoded[0]
+            x, y, w, h = barcode.rect.left, barcode.rect.top, barcode.rect.width, barcode.rect.height
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            current_barcode = barcode.data.decode("utf-8")
             last_barcode_time = datetime.now()
             editbox.delete(0, tk.END)
             editbox.insert(0, current_barcode)
@@ -59,13 +57,23 @@ def update_frame():
             editbox.delete(0, tk.END)
             editbox.insert(0, "No barcode found")
 
+        frame2Display = Image.fromarray(frame)
+        frame2Display = ImageTk.PhotoImage(frame2Display)
+        label.config(image=frame2Display)
+        label.image = frame2Display
+
     root.after(10, update_frame)
+
 
 def on_keypress(event):
     if event.keysym == 'space' and current_barcode:
         capture_image(current_barcode)
     elif event.keysym == 'space':
         capture_image()
+    elif event.keysym == 'Escape':  # Handling ESC key press
+        cap.release()  # Release the webcam
+        root.quit()    # Stop the Tkinter main loop
+
 
 root = tk.Tk()
 root.title("Webcam Stream with Barcode Reader")
