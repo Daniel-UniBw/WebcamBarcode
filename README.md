@@ -10,5 +10,5 @@ ln -s $(brew --prefix zbar)/lib/libzbar.dylib ~/lib/libzbar.dylib
 
 ### Windows
 - Environment erstellen wenn gewollt
-- pip install -r requirements
+- pip install -r requirements.txt
 - Installation der x64 Version von https://www.microsoft.com/en-US/download/details.aspx?id=40784
